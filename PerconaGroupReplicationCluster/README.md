@@ -1,4 +1,4 @@
-### Percona Group Replication
+### Percona Group Replication Test Setup
 
 This compose file and scripts are for setting up percona server version 8.0.23 with mysql group replication using proxysql as HA on the docker environment. This will setup 3 percona  and 1 proxysql containers with the following host/container names in docker environment:
 
@@ -9,7 +9,7 @@ percona3
 proxysql
 ```
 
-Steps:
+Follow the steps after cloning this content into a directory:
 
 1. Setup the environment file and change the mysql root passwords in the .env file
 ```bash
@@ -37,15 +37,16 @@ Steps:
 # bash percona_replication_setup.sh
 ````
 
-6. You can reach mysql service on the nodes by 
+6. You can reach mysql and proxysql services on the nodes by 
 
 `docker exec -it percona1 mysql -u root -p<PassWordHere> -h 127.0.0.1`
+`docker exec -it proxysql mysql -uadmin  -padmin -h 127.0.0.1 -P 6032`
 
 or by exposed ports from hosts:
 ```
-mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3306
-mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3307
-mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3308
+mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3306     # percona1
+mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3307     # percona2
+mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3308     # percona3
 ```
 
 If you need to start over, bring the cluster down by `docker compose down --remove-orphans` command and deleting the directory Apps/ in the folder.
