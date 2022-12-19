@@ -1,6 +1,6 @@
 ### Percona Group Replication
 
-This compose file and scripts are for setting up percona server 8 mysql group replication using proxysql on the docker environment. This will setup 3 percona server and 1 proxysql container with the following container and hostnames in docker environment:
+This compose file and scripts are for setting up percona server version 8.0.23 with mysql group replication using proxysql as HA on the docker environment. This will setup 3 percona  and 1 proxysql containers with the following host/container names in docker environment:
 
 ```
 percona1
@@ -16,7 +16,7 @@ Steps:
 - cp dot.env .env 
 ```
 
-2. Initialize the db cluster. This will create persist3nt db files in the App/ folder in the current directory.
+2. Initialize the db cluster. This will create persistent db files in the App/ folder in the current directory.
 ```bash
 # docker compose up db-init
 ```
@@ -26,29 +26,29 @@ Steps:
 # docker compose down --remove-orphans
 ```
 
-4. Start the cluster by mounting the spesific parameters in Config/ directory
+4. Start the cluster by mounting the spesific parameters from the Config/ directory for each service.
 ```bash
 # docker compose up db-cluster
 ```
 
-5. Run the cluster migration script which setup percona-server and proxysql configuration respectively according to [percona configuration instructions](https://docs.percona.com/percona-distribution-for-mysql/8.0/deploy-pdps-group-replication.html)
+5. Run the cluster migration script which setup percona-server and proxysql configuration respectively according to [percona product documentation](https://docs.percona.com/percona-distribution-for-mysql/8.0/deploy-pdps-group-replication.html)
 
 ```bash
 # bash percona_replication_setup.sh
 ````
 
-6. You can reach the nodes by 
+6. You can reach mysql service on the nodes by 
 
 `docker exec -it percona1 mysql -u root -p<PassWordHere> -h 127.0.0.1`
 
 or by exposed ports from hosts:
 ```
-percona1 -> 3306:
-percona2 -> 3307:
-percona3 -> 3308:
+mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3306
+mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3307
+mysqlsh -uroot -p<PassWordHere> -h 127.0.0.1 -P 3308
 ```
 
-If you need to start over, bring the cluster down by `docker compose down --remove-orphans` command and deleting the directory Apps/ in the folder 
+If you need to start over, bring the cluster down by `docker compose down --remove-orphans` command and deleting the directory Apps/ in the folder.
 
 
 
