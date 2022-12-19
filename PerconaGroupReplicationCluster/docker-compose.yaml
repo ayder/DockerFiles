@@ -1,0 +1,144 @@
+version: '2.0'
+
+services:
+  db1:
+    hostname: percona1
+    image: percona/percona-server:8.0.23
+    cap_add:
+      - SYS_NICE  
+    ports:
+      - 3306:3306
+      - 33061:33060
+    volumes:
+      - ${APP_VOLUMES_DIR}/percona82301:/var/lib/mysql
+    profiles:
+      - cluster
+      - init
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWD}
+
+  db2:
+    hostname: percona2
+    image: percona/percona-server:8.0.23
+    cap_add:
+      - SYS_NICE  
+    ports:
+      - 3307:3306
+      - 33062:33060
+    volumes:
+      - ${APP_VOLUMES_DIR}/percona82302:/var/lib/mysql
+    profiles:
+      - cluster
+      - init
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWD}
+
+  db3:
+    hostname: percona3
+    image: percona/percona-server:8.0.23
+    cap_add:
+      - SYS_NICE  
+    ports:
+      - 3308:3306
+      - 33063:33060
+    volumes:
+      - ${APP_VOLUMES_DIR}/percona82303:/var/lib/mysql
+    profiles:
+      - cluster
+      - init
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWD}
+
+
+  cluster-db1:
+    hostname: percona1
+    image: percona/percona-server:8.0.23
+    cap_add:
+      - SYS_NICE  
+    ports:
+      - 3306:3306
+      - 33061:33060
+    volumes:
+      - ${APP_VOLUMES_DIR}/percona82301:/var/lib/mysql
+      - ${APP_CONFIG_DIR}/percona01.cnf:/etc/my.cnf.d/docker.cnf
+    profiles:
+      - cluster
+
+  cluster-db2:
+    hostname: percona2
+    image: percona/percona-server:8.0.23
+    cap_add:
+      - SYS_NICE  
+    ports:
+      - 3307:3306
+      - 33062:33060
+    volumes:
+      - ${APP_VOLUMES_DIR}/percona82302:/var/lib/mysql
+      - ${APP_CONFIG_DIR}/percona02.cnf:/etc/my.cnf.d/docker.cnf
+    profiles:
+      - cluster
+
+  cluster-db3:
+    hostname: percona3
+    image: percona/percona-server:8.0.23
+    cap_add:
+      - SYS_NICE  
+    ports:
+      - 3308:3306
+      - 33063:33060
+    volumes:
+      - ${APP_VOLUMES_DIR}/percona82303:/var/lib/mysql
+      - ${APP_CONFIG_DIR}/percona03.cnf:/etc/my.cnf.d/docker.cnf
+    profiles:
+      - cluster
+
+  proxysql-2.4:
+    container_name: proxysql
+    hostname: proxysql
+    image: proxysql/proxysql:2.4.4
+    ports:
+      - 6032:6032
+      - 6033:6033
+      - 6070:6070
+    volumes:
+      - ${APP_VOLUMES_DIR}/proxysql24:/var/lib/proxysql
+    profiles:
+      - cluster
+
+  db-init:
+    # image: percona/percona-server:8.0.23
+    # command: tail -f /var/log/mysqld.log
+    # image: atkrad/wait4x:latest
+    image : proxysql/proxysql:2.4.4
+    command: bash -c 'sleep 5 && echo "Databases are initialized. Run docker compose down --remove-orphans and docker compose up db-cluster"'
+    depends_on:
+      - db1
+      - db2
+      - db3
+    profiles:
+      - init
+
+
+  db-cluster:
+    container_name: proxysql
+    hostname: proxysql
+    image: proxysql/proxysql:2.4.4
+    depends_on:
+      - cluster-db1
+      - cluster-db2
+      - cluster-db3
+    ports:
+      - 6032:6032
+      - 6033:6033
+      - 6070:6070
+    volumes:
+      - ${APP_VOLUMES_DIR}/proxysql2.4gr:/var/lib/proxysql
+    profiles:
+      - cluster
+      
+
+networks:
+  defaults:
+    name: sysown-internal
+    external: true
+

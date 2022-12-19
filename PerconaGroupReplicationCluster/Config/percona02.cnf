@@ -1,0 +1,39 @@
+[mysqld]
+#####################
+#Replication + binlog settings
+#####################
+auto-increment-increment                                    =1
+auto-increment-offset                                       =1
+
+log-bin                                             	    =binlog
+log-bin-index                                               =binlog.index
+binlog-checksum                                             =NONE
+binlog-format                                               =ROW
+binlog-row-image                                            =FULL
+log-slave-updates                                           =1
+binlog-transaction-dependency-tracking                      =WRITESET_SESSION
+enforce-gtid-consistency                                    =TRUE
+gtid-mode                                                   =ON
+
+relay-log                                                   =relaylog
+
+sync-binlog                                                 =1
+
+### SLAVE SECTION
+skip-slave-start
+slave-parallel-type                                         = LOGICAL_CLOCK
+slave-parallel-workers                                      = 4
+slave-preserve-commit-order                                 = 1
+
+
+######################################
+#Group Replication
+######################################
+plugin_load_add                                     ='group_replication.so'
+plugin-load-add                                     ='mysql_clone.so'
+group_replication_group_name                        ="768ACBAD-82CA-4E44-A291-A995BA1E4CBD"
+group_replication_start_on_boot                     =off
+group_replication_local_address                     = "percona2:33062"
+group_replication_group_seeds                       = "percona1:33061,percona2:33062,percona3:33063""
+group_replication_bootstrap_group                   = off
+transaction-write-set-extraction                    = XXHASH64
