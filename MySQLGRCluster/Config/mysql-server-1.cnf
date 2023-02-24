@@ -1,0 +1,26 @@
+[mysqld]
+user							    =mysql
+server_id						    =1
+
+default_password_lifetime 				    =0
+default-authentication-plugin                               =mysql_native_password
+log-bin                                             	    =binlog
+log-bin-index                                               =binlog.index
+binlog-checksum                                             =NONE
+binlog-format                                               =ROW
+binlog-row-image                                            =FULL
+log-replica-updates                                         =ON
+enforce-gtid-consistency                                    =TRUE
+gtid-mode                                                   =ON
+relay-log                                                   =relaylog
+
+
+sync-binlog                                                 =1
+binlog_transaction_dependency_tracking			    =WRITESET
+
+skip-name-resolve
+### SLAVE SECTION
+skip-replica-start
+replica-parallel-workers                                      = 4
+replica-preserve-commit-order                                 = 1
+

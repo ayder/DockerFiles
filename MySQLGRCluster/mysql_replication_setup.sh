@@ -1,13 +1,12 @@
 #!/bin/bash
 
+USER=root
+
 if [ ! -f .env ]
 then
   export $(cat .env | xargs)
 fi
 
-USER=root
-MYSQL_ROOT_PASSWD=qazokm
-MYSQL_CLIENT="docker exec -i proxysql mysql"
 
 set -o noglob
 GRANTS=$(cat <<EOF
@@ -27,43 +26,42 @@ EOF
 )
 
 
-for server in percona1 percona2 percona3
+for port in 3306 3307 3308
 do
-  echo "running grants sql on container :${server}"
-  echo $GRANTS| $MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h $server
-  $MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h $server -e "CHANGE MASTER TO MASTER_USER='replica', MASTER_PASSWORD='replicapw' FOR CHANNEL 'group_replication_recovery';"
+  echo "running grants sql on 127.0.0.1:${port}"
+  echo $GRANTS| mysqlsh -u${USER} -p${PASS} -h 127.0.0.1 -P ${port}
+  mysqlsh -u${USER} -p${PASS} -h 127.0.0.1 -P ${port} -e "CHANGE MASTER TO MASTER_USER='replica', MASTER_PASSWORD='replicapw' FOR CHANNEL 'group_replication_recovery';"
 
 done
 
-$MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h percona1  -P 3306 -e "select * from performance_schema.replication_group_members\G"
+mysqlsh -u${USER} -p${PASS} -h 127.0.0.1 -P 3306 -e "select * from performance_schema.replication_group_members\G"
 sleep 3
 
 
-echo "Bootstrapping the primary percona1..."
-$MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h percona1 <<EOF
+echo "Bootstrapping the primary..."
+mysqlsh -u${USER} -p${PASS} -h 127.0.0.1 -P 3306 <<EOF
 SET GLOBAL group_replication_bootstrap_group=ON;
 START GROUP_REPLICATION;
 SET GLOBAL group_replication_bootstrap_group=OFF;
 EOF
 sleep 5
 
-for server in percona2 percona3
+for port in 3307 3308
 do
   echo "Joining secondary node .. ${port}"
-  $MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h $server -e "START GROUP_REPLICATION;"
+  mysqlsh -u${USER} -p${PASS} -h 127.0.0.1 -P ${port} -e "START GROUP_REPLICATION;"
   sleep 5
 
 done
 
 echo "Applying view to sys schema.."
-# $MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h percona1 < GR_sys_view_forProxysql_v1.sql
-$MYSQL_CLIENT -u${USER} -p${MYSQL_ROOT_PASSWD} -h percona1 < proxysql_view.sql
+mysqlsh -u${USER} -p${PASS} -h 127.0.0.1 -P 3306 < sys.gr_member_routing_candidate_status.sql
 sleep 1
 
 
 echo "Setting up proxysql.."
 
-$MYSQL_CLIENT -uadmin -padmin -h 127.0.0.1 -P 6032 <<EOF
+docker exec -i proxysql mysql -uadmin -padmin -h 127.0.0.1 -P 6032 <<EOF
 set admin-hash_passwords='false';
 save admin variables to disk;
 load admin variables to runtime;
@@ -77,12 +75,25 @@ INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,com
 LOAD MYSQL SERVERS TO RUNTIME; 
 SAVE MYSQL SERVERS TO DISK;
 INSERT INTO mysql_group_replication_hostgroups (
-writer_hostgroup, backup_writer_hostgroup, reader_hostgroup, offline_hostgroup, active,
-max_writers, writer_is_also_reader, max_transactions_behind)
-values ( 10, 12, 11, 9401, 1, 1, 0, 100);
+writer_hostgroup,
+backup_writer_hostgroup,
+reader_hostgroup, 
+offline_hostgroup,
+active,
+max_writers,
+writer_is_also_reader,
+max_transactions_behind)
+values (
+10,
+12,
+11,
+9401,
+1,
+1,
+0,
+100);
 LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
 EOF
 
-echo "Proxysql mysql_group_replication setup is now complete"
 
-sleep 2
+sleep 10 
